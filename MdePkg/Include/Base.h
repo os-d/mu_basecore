@@ -284,7 +284,11 @@ struct _LIST_ENTRY {
 ///
 /// Datum is scoped to the current file or function.
 ///
+#ifndef UNIT_TEST
 #define STATIC  static
+#else
+#define STATIC
+#endif
 
 ///
 /// Undeclared type.
