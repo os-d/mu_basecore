@@ -152,11 +152,17 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 // Memory type to guard (matching the related PCD definition)
 //
-#define GUARD_HEAP_TYPE_PAGE   BIT0
-#define GUARD_HEAP_TYPE_POOL   BIT1
+#define GUARD_HEAP_TYPE_PAGE  BIT0
+#define GUARD_HEAP_TYPE_POOL  BIT1
+
+/* MU_CHANGE Start: Remove Freed Memory Guard
 #define GUARD_HEAP_TYPE_FREED  BIT4
 #define GUARD_HEAP_TYPE_ALL         \
         (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
+*/
+#define GUARD_HEAP_TYPE_ALL         \
+        (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL)
+// MU_CHANGE End: Remove Freed Memory Guard */
 
 //
 // Debug message level
@@ -421,11 +427,12 @@ HeapGuardCpuArchProtocolNotify (
   @return VOID
 
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 MergeGuardPages (
   IN EFI_MEMORY_DESCRIPTOR  *MemoryMapEntry,
   IN EFI_PHYSICAL_ADDRESS   MaxAddress
-  );
+  ); MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Record freed pages as well as mark them as not-present, if enabled.
@@ -435,12 +442,13 @@ MergeGuardPages (
 
   @return VOID.
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 EFIAPI
 GuardFreedPagesChecked (
   IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
   IN  UINTN                 Pages
-  );
+  ); MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Put part (at most 64 pages a time) guarded free pages back to free page pool.

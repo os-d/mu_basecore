@@ -19,8 +19,8 @@ typedef struct {
   LIST_ENTRY    Link;
 } POOL_FREE;
 
-#define POOL_HEAD_SIGNATURE      SIGNATURE_32('p','h','d','0')
-#define POOLPAGE_HEAD_SIGNATURE  SIGNATURE_32('p','h','d','1')
+#define POOL_HEAD_SIGNATURE  SIGNATURE_32('p','h','d','0')
+// #define POOLPAGE_HEAD_SIGNATURE  SIGNATURE_32('p','h','d','1') MU_CHANGE: Remove Freed Memory Guard
 typedef struct {
   UINT32             Signature;
   UINT32             Reserved;
@@ -366,7 +366,8 @@ CoreAllocatePoolI (
   UINTN      NoPages;
   UINTN      Granularity;
   BOOLEAN    HasPoolTail;
-  BOOLEAN    PageAsPool;
+
+  // BOOLEAN    PageAsPool; MU_CHANGE: Remove Freed Memory Guard
 
   ASSERT_LOCKED (&mPoolMemoryLock);
 
@@ -399,7 +400,7 @@ CoreAllocatePoolI (
                   //  ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) == 0));
                   gDxeMps.HeapGuardPolicy.Fields.Direction == HEAP_GUARD_ALIGNED_TO_TAIL);
   // MU_CHANGE END
-  PageAsPool = (IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED) && !mOnGuarding);
+  // PageAsPool = (IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED) && !mOnGuarding); MU_CHANGE: Remove Freed Memory Guard
 
   //
   // Adjusting the Size to be of proper alignment so that
@@ -421,7 +422,7 @@ CoreAllocatePoolI (
   // If allocation is over max size, just allocate pages for the request
   // (slow)
   //
-  if ((Index >= SIZE_TO_LIST (Granularity)) || NeedGuard || PageAsPool) {
+  if ((Index >= SIZE_TO_LIST (Granularity)) || NeedGuard /* MU_CHANGE: Remove Freed Memory Guard || PageAsPool */) {
     if (!HasPoolTail) {
       Size -= sizeof (POOL_TAIL);
     }
@@ -524,7 +525,7 @@ Done:
     //
     // If we have a pool buffer, fill in the header & tail info
     //
-    Head->Signature = (PageAsPool) ? POOLPAGE_HEAD_SIGNATURE : POOL_HEAD_SIGNATURE;
+    Head->Signature = /* MU_CHANGE: Remove Freed Memory Guard (PageAsPool) ? POOLPAGE_HEAD_SIGNATURE : */ POOL_HEAD_SIGNATURE;
     Head->Size      = Size;
     Head->Type      = (EFI_MEMORY_TYPE)PoolType;
     Buffer          = Head->Data;
@@ -639,7 +640,7 @@ CoreFreePoolPagesI (
   CoreFreePoolPages (Memory, NoPages);
   CoreReleaseMemoryLock ();
 
-  GuardFreedPagesChecked (Memory, NoPages);
+  // GuardFreedPagesChecked (Memory, NoPages); MU_CHANGE: Remove Freed Memory Guard */
   ApplyMemoryProtectionPolicy (
     PoolType,
     EfiConventionalMemory,
@@ -714,7 +715,8 @@ CoreFreePoolI (
   UINTN      Granularity;
   BOOLEAN    IsGuarded;
   BOOLEAN    HasPoolTail;
-  BOOLEAN    PageAsPool;
+
+  // BOOLEAN    PageAsPool; MU_CHANGE: Remove Freed Memory Guard
 
   ASSERT (Buffer != NULL);
   //
@@ -723,12 +725,11 @@ CoreFreePoolI (
   Head = BASE_CR (Buffer, POOL_HEAD, Data);
   ASSERT (Head != NULL);
 
-  if ((Head->Signature != POOL_HEAD_SIGNATURE) &&
-      (Head->Signature != POOLPAGE_HEAD_SIGNATURE))
-  {
+  if ((Head->Signature != POOL_HEAD_SIGNATURE) /* MU_CHANGE: Remove Freed Memory Guard &&
+      (Head->Signature != POOLPAGE_HEAD_SIGNATURE) */) {
     ASSERT (
-      Head->Signature == POOL_HEAD_SIGNATURE ||
-      Head->Signature == POOLPAGE_HEAD_SIGNATURE
+      Head->Signature == POOL_HEAD_SIGNATURE /* MU_CHANGE: Remove Freed Memory Guard ||
+      Head->Signature == POOLPAGE_HEAD_SIGNATURE */
       );
     return EFI_INVALID_PARAMETER;
   }
@@ -740,7 +741,7 @@ CoreFreePoolI (
                   // ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) == 0));
                   gDxeMps.HeapGuardPolicy.Fields.Direction == HEAP_GUARD_ALIGNED_TO_TAIL);
   // MU_CHANGE END
-  PageAsPool = (Head->Signature == POOLPAGE_HEAD_SIGNATURE);
+  // PageAsPool = (Head->Signature == POOLPAGE_HEAD_SIGNATURE); MU_CHANGE: Remove Freed Memory Guard
 
   if (HasPoolTail) {
     Tail = HEAD_TO_TAIL (Head);
@@ -798,7 +799,7 @@ CoreFreePoolI (
   //
   // If it's not on the list, it must be pool pages
   //
-  if ((Index >= SIZE_TO_LIST (Granularity)) || IsGuarded || PageAsPool) {
+  if ((Index >= SIZE_TO_LIST (Granularity)) || IsGuarded /* MU_CHANGE: Remove Freed Memory Guard || PageAsPool */) {
     //
     // Return the memory pages back to free memory
     //

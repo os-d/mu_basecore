@@ -1300,6 +1300,7 @@ SetAllGuardPages (
 
   @return VOID.
 **/
+/* MU_CHANGE Start Remove Freed Memory Guard
 VOID
 GetLastGuardedFreePageAddress (
   OUT EFI_PHYSICAL_ADDRESS  *Address
@@ -1342,7 +1343,7 @@ GetLastGuardedFreePageAddress (
   }
 
   *Address = BaseAddress;
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Record freed pages.
@@ -1352,6 +1353,7 @@ GetLastGuardedFreePageAddress (
 
   @return VOID.
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 MarkFreedPages (
   IN EFI_PHYSICAL_ADDRESS  BaseAddress,
@@ -1359,7 +1361,7 @@ MarkFreedPages (
   )
 {
   SetGuardedMemoryBits (BaseAddress, Pages);
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Record freed pages as well as mark them as not-present.
@@ -1369,6 +1371,7 @@ MarkFreedPages (
 
   @return VOID.
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 EFIAPI
 GuardFreedPages (
@@ -1414,7 +1417,7 @@ GuardFreedPages (
 
     mOnGuarding = FALSE;
   }
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Record freed pages as well as mark them as not-present, if enabled.
@@ -1424,6 +1427,7 @@ GuardFreedPages (
 
   @return VOID.
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 EFIAPI
 GuardFreedPagesChecked (
@@ -1434,12 +1438,13 @@ GuardFreedPagesChecked (
   if (IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED)) {
     GuardFreedPages (BaseAddress, Pages);
   }
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Mark all pages freed before CPU Arch Protocol as not-present.
 
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 GuardAllFreedPages (
   VOID
@@ -1541,7 +1546,7 @@ GuardAllFreedPages (
   if (Address != 0) {
     mLastPromotedPage = Address;
   }
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   This function checks to see if the given memory map descriptor in a memory map
@@ -1553,6 +1558,7 @@ GuardAllFreedPages (
   @return VOID
 
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 VOID
 MergeGuardPages (
   IN EFI_MEMORY_DESCRIPTOR  *MemoryMapEntry,
@@ -1587,7 +1593,7 @@ MergeGuardPages (
     MemoryMapEntry->NumberOfPages++;
     Bitmap = RShiftU64 (Bitmap, 1);
   }
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Put part (at most 64 pages a time) guarded free pages back to free page pool.
@@ -1608,6 +1614,7 @@ MergeGuardPages (
   @return FALSE   No free memory found.
 
 **/
+/* MU_CHANGE Start: Remove Freed Memory Guard
 BOOLEAN
 PromoteGuardedFreePages (
   OUT EFI_PHYSICAL_ADDRESS  *StartAddress,
@@ -1676,7 +1683,7 @@ PromoteGuardedFreePages (
   }
 
   return FALSE;
-}
+} MU_CHANGE End: Remove Freed Memory Guard */
 
 /**
   Notify function used to set all Guard pages before CPU Arch Protocol installed.
@@ -1688,20 +1695,22 @@ HeapGuardCpuArchProtocolNotify (
 {
   ASSERT (gCpu != NULL);
 
-  if (IsHeapGuardEnabled (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL) &&
-      IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED))
-  {
-    DEBUG ((DEBUG_ERROR, "Heap guard and freed memory guard cannot be enabled at the same time.\n"));
-    CpuDeadLoop ();
-  }
+  /* MU_CHANGE Start: Remove Freed Memory Guard
+    if (IsHeapGuardEnabled (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL) &&
+        IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED))
+    {
+      DEBUG ((DEBUG_ERROR, "Heap guard and freed memory guard cannot be enabled at the same time.\n"));
+      CpuDeadLoop ();
+    } MU_CHANGE End: Remove Freed Memory Guard */
 
   if (IsHeapGuardEnabled (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL)) {
     SetAllGuardPages ();
   }
 
-  if (IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED)) {
-    GuardAllFreedPages ();
-  }
+  /* MU_CHANGE Start: Remove Freed Memory Guard
+    if (IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED)) {
+      GuardAllFreedPages ();
+    } MU_CHANGE End: Remove Freed Memory Guard */
 }
 
 /**

@@ -407,12 +407,15 @@ PromoteMemoryResource (
   VOID
   )
 {
-  LIST_ENTRY                       *Link;
-  EFI_GCD_MAP_ENTRY                *Entry;
-  BOOLEAN                          Promoted;
-  EFI_PHYSICAL_ADDRESS             StartAddress;
-  EFI_PHYSICAL_ADDRESS             EndAddress;
-  EFI_GCD_MEMORY_SPACE_DESCRIPTOR  Descriptor;
+  LIST_ENTRY         *Link;
+  EFI_GCD_MAP_ENTRY  *Entry;
+  BOOLEAN            Promoted;
+
+  /* MU_CHANGE Start: Remove Freed Memory Guard
+    EFI_PHYSICAL_ADDRESS             StartAddress;
+    EFI_PHYSICAL_ADDRESS             EndAddress;
+    EFI_GCD_MEMORY_SPACE_DESCRIPTOR  Descriptor;
+    MU_CHANGE End: Remove Freed Memory Guard */
 
   DEBUG ((DEBUG_PAGE, "Promote the memory resource\n"));
 
@@ -461,24 +464,25 @@ PromoteMemoryResource (
 
   CoreReleaseGcdMemoryLock ();
 
-  if (!Promoted) {
-    //
-    // If freed-memory guard is enabled, we could promote pages from
-    // guarded free pages.
-    //
-    Promoted = PromoteGuardedFreePages (&StartAddress, &EndAddress);
-    if (Promoted) {
-      if (!EFI_ERROR (CoreGetMemorySpaceDescriptor (StartAddress, &Descriptor))) {
-        CoreAddRange (
-          EfiConventionalMemory,
-          StartAddress,
-          EndAddress,
-          Descriptor.Capabilities & ~(EFI_MEMORY_PRESENT | EFI_MEMORY_INITIALIZED |
-                                      EFI_MEMORY_TESTED | EFI_MEMORY_RUNTIME)
-          );
+  /* MU_CHANGE Start: Remove Freed Memory Guard
+    if (!Promoted) {
+      //
+      // If freed-memory guard is enabled, we could promote pages from
+      // guarded free pages.
+      //
+      Promoted = PromoteGuardedFreePages (&StartAddress, &EndAddress);
+      if (Promoted) {
+        if (!EFI_ERROR (CoreGetMemorySpaceDescriptor (StartAddress, &Descriptor))) {
+          CoreAddRange (
+            EfiConventionalMemory,
+            StartAddress,
+            EndAddress,
+            Descriptor.Capabilities & ~(EFI_MEMORY_PRESENT | EFI_MEMORY_INITIALIZED |
+                                        EFI_MEMORY_TESTED | EFI_MEMORY_RUNTIME)
+            );
+        }
       }
-    }
-  }
+    } MU_CHANGE End: Remove Freed Memory Guard */
 
   return Promoted;
 }
@@ -975,8 +979,8 @@ CoreConvertPagesEx (
     // Add our new range in. Don't do this for freed pages if freed-memory
     // guard is enabled.
     //
-    if (!IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED) ||
-        !ChangingType ||
+    // if (!IsHeapGuardEnabled (GUARD_HEAP_TYPE_FREED) || MU_CHANGE: Remove Freed Memory Guard
+    if (!ChangingType ||   // MU_CHANGE: Remove Freed Memory Guard
         (MemType != EfiConventionalMemory))
     {
       CoreAddRange (MemType, Start, RangeEnd, Attribute);
@@ -1702,7 +1706,7 @@ CoreFreePages (
 
   Status = CoreInternalFreePages (Memory, NumberOfPages, &MemoryType);
   if (!EFI_ERROR (Status)) {
-    GuardFreedPagesChecked (Memory, NumberOfPages);
+    // GuardFreedPagesChecked (Memory, NumberOfPages); MU_CHANGE: Remove Freed Memory Guard */
     CoreUpdateProfile (
       (EFI_PHYSICAL_ADDRESS)(UINTN)RETURN_ADDRESS (0),
       MemoryProfileActionFreePages,
