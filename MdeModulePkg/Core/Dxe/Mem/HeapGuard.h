@@ -162,7 +162,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 */
 #define GUARD_HEAP_TYPE_ALL         \
         (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL)
-// MU_CHANGE End: Remove Freed Memory Guard */
+// MU_CHANGE End: Remove Freed Memory Guard
 
 //
 // Debug message level

@@ -640,7 +640,7 @@ CoreFreePoolPagesI (
   CoreFreePoolPages (Memory, NoPages);
   CoreReleaseMemoryLock ();
 
-  // GuardFreedPagesChecked (Memory, NoPages); MU_CHANGE: Remove Freed Memory Guard */
+  // GuardFreedPagesChecked (Memory, NoPages); MU_CHANGE: Remove Freed Memory Guard
   ApplyMemoryProtectionPolicy (
     PoolType,
     EfiConventionalMemory,

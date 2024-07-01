@@ -1706,7 +1706,7 @@ CoreFreePages (
 
   Status = CoreInternalFreePages (Memory, NumberOfPages, &MemoryType);
   if (!EFI_ERROR (Status)) {
-    // GuardFreedPagesChecked (Memory, NumberOfPages); MU_CHANGE: Remove Freed Memory Guard */
+    // GuardFreedPagesChecked (Memory, NumberOfPages); MU_CHANGE: Remove Freed Memory Guard
     CoreUpdateProfile (
       (EFI_PHYSICAL_ADDRESS)(UINTN)RETURN_ADDRESS (0),
       MemoryProfileActionFreePages,
