@@ -940,7 +940,7 @@ CoreConvertSpace (
     // arch attributes (for example, RUNTIME) as the purpose of the case is not
     // to clear CPU arch attributes.
     //
-    if (CpuArchAttributes != 0) {
+    if ((CpuArchAttributes != 0) && (Attributes != 0)) {
       if (gCpu == NULL) {
         Status = EFI_NOT_AVAILABLE_YET;
       } else {
