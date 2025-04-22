@@ -2421,7 +2421,7 @@ InitializePageAttributesForMemoryProtectionPolicy (
   while ((UINTN)MemoryMapEntry < (UINTN)MemoryMapEnd) {
     if (MemoryMapEntry->Attribute != 0) {
       SetUefiImageMemoryAttributes (
-        MemoryMapEntry->PhysicalStart,
+        MemoryMapEntry->PhysicalStart & EFI_PAGE_MASK,
         LShiftU64 (MemoryMapEntry->NumberOfPages, EFI_PAGE_SHIFT),
         MemoryMapEntry->Attribute
         );
