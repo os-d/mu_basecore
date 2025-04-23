@@ -791,6 +791,7 @@ CoreConvertSpace (
   Status = CoreSearchGcdMapEntry (BaseAddress, Length, &StartLink, &EndLink, Map);
   if (EFI_ERROR (Status) || ((StartLink == NULL) || (EndLink == NULL))) {
     // MU_CHANGE - CodeQL Change
+    DEBUG ((DEBUG_ERROR, "OSDDEBUG10\n"));
     Status = EFI_UNSUPPORTED;
 
     goto Done;
@@ -877,6 +878,7 @@ CoreConvertSpace (
 
         if ((Entry->Capabilities & Attributes) != Attributes) {
           Status = EFI_UNSUPPORTED;
+          DEBUG ((DEBUG_ERROR, "OSDDEBUG11\n"));
           goto Done;
         }
 
@@ -953,6 +955,7 @@ CoreConvertSpace (
       }
 
       if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_ERROR, "OSDDEBUG12\n"));
         CoreFreePool (TopEntry);
         CoreFreePool (BottomEntry);
         goto Done;

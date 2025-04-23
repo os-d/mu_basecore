@@ -295,6 +295,15 @@ SetUefiImageMemoryAttributes (
 
     // check to see if the capabilities support the attributes we want to set. If not, set the capabilities appropriately
     if ((Descriptor.Capabilities & FinalAttributes) != FinalAttributes) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "Setting capabilities for %a - %llx of length %llx with attributes %llx and desc capabilities %llx\n",
+        __func__,
+        CurrentAddress,
+        CurrentLength,
+        FinalAttributes,
+        Descriptor.Capabilities
+        ));
       Status = CoreSetMemorySpaceCapabilities (
                  CurrentAddress,
                  CurrentLength,
@@ -314,6 +323,21 @@ SetUefiImageMemoryAttributes (
           ));
         ASSERT_EFI_ERROR (Status);
       }
+
+      Status = CoreGetMemorySpaceDescriptor (CurrentAddress, &Descriptor);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((
+          DEBUG_ERROR,
+          "%a - Failed to get memory space descriptor for address %llx with status %r. Cannot protect image.\n",
+          __func__,
+          CurrentAddress,
+          Status
+          ));
+        ASSERT_EFI_ERROR (Status);
+        return;
+      }
+
+      DEBUG ((DEBUG_ERROR, "Got descriptor again after setting capabilities, now capabilities are %llx\n", Descriptor.Capabilities));
     }
 
     // Call into the GCD to update the attributes there. It will call into the CPU Arch protocol to update the
@@ -327,11 +351,12 @@ SetUefiImageMemoryAttributes (
     if (EFI_ERROR (Status)) {
       DEBUG ((
         DEBUG_ERROR,
-        "%a failed on %llx of length %llx with attributes %llx - %r\n",
+        "%a failed on %llx of length %llx with attributes %llx and desc capabilities %llx- %r\n",
         __func__,
         CurrentAddress,
         CurrentLength,
         FinalAttributes,
+        Descriptor.Capabilities,
         Status
         ));
       ASSERT_EFI_ERROR (Status);
