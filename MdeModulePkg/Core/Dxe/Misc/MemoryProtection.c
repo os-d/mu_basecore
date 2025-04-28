@@ -46,6 +46,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "Mem/HeapGuard.h"
 #include "MemoryProtectionSupport.h" // MU_CHANGE
 
+extern BOOLEAN     mGcdUpdateInProgess;
+
 //
 // Image type definitions
 //
@@ -1651,6 +1653,7 @@ ApplyMemoryProtectionPolicy (
 {
   UINT64  OldAttributes;
   UINT64  NewAttributes;
+  EFI_STATUS  Status;
 
   // MU_CHANGE START
   // With memory being marked as RP, if a SMM driver makes a BS allocation (from within the
@@ -1743,5 +1746,15 @@ ApplyMemoryProtectionPolicy (
 
   // MU_CHANGE END
 
-  return gCpu->SetMemoryAttributes (gCpu, Memory, Length, NewAttributes);
+  if (!mGcdUpdateInProgess) {
+    Status = CoreSetMemorySpaceAttributes (Memory, Length, NewAttributes);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "%a - Failed to set memory attributes for 0x%016lx - %r\n", __func__, Memory, Status));
+      return Status;
+    }
+  } else {
+    return gCpu->SetMemoryAttributes (gCpu, Memory, Length, NewAttributes);
+  }
+
+  
 }
