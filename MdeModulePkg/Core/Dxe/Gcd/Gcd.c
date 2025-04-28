@@ -879,6 +879,13 @@ CoreConvertSpace (
         if ((Entry->Capabilities & Attributes) != Attributes) {
           Status = EFI_UNSUPPORTED;
           DEBUG ((DEBUG_ERROR, "OSDDEBUG11\n"));
+          DEBUG ((DEBUG_ERROR, "Attributes = %016lx\n", Attributes));
+          DEBUG ((DEBUG_ERROR, "BaseAddress = %016lx\n", BaseAddress));
+          DEBUG ((DEBUG_ERROR, "Length = %016lx\n", Length));
+          DEBUG ((DEBUG_ERROR, "Entry->BaseAddress = %016lx\n", Entry->BaseAddress));
+          DEBUG ((DEBUG_ERROR, "Entry->Capabilities = %016lx\n", Entry->Capabilities));
+          DEBUG ((DEBUG_ERROR, "Entry->EndAddress = %016lx\n", Entry->EndAddress));
+
           goto Done;
         }
 
