@@ -261,15 +261,18 @@ SetUefiImageMemoryAttributes (
   UINT64                           FinalAttributes;
   UINT64                           CurrentAddress;
   UINT64                           CurrentLength;
+  UINT64                           ImageEnd;
+  UINT64                           DescEnd;
 
   CurrentAddress = BaseAddress;
+  ImageEnd       = BaseAddress + Length;
 
   DEBUG ((DEBUG_ERROR, "First entry SetUefiImageMemoryAttributes - %llx - %llx (0x%016lx)\n", BaseAddress, Length, Attributes));
 
   // we loop here because we may have multiple memory space descriptors that overlap the requested range
   // this will definitely be the case for unprotecting an image, because that calls this function for the entire image,
   // which we split into different GCD descriptors when we protected it.
-  while (CurrentAddress < BaseAddress + Length) {
+  while (CurrentAddress < ImageEnd) {
     Status = CoreGetMemorySpaceDescriptor (CurrentAddress, &Descriptor);
     if (EFI_ERROR (Status)) {
       DEBUG ((
@@ -283,13 +286,15 @@ SetUefiImageMemoryAttributes (
       return;
     }
 
+    DescEnd = Descriptor.BaseAddress + Descriptor.Length;
+
     DEBUG ((DEBUG_ERROR, "Got descriptor for %llx with capabilities %llx attributes trying to set: %llx, Descriptor->BaseAddress %llx Length %llx \n", CurrentAddress, Descriptor.Capabilities, Attributes, Descriptor.BaseAddress, Descriptor.Length));
 
     // ensure that we only change the attributes for the range that we are interested in, not the entire descriptor
-    if (BaseAddress + Length > CurrentAddress + Descriptor.Length) {
-      CurrentLength = Descriptor.Length;
+    if (ImageEnd > DescEnd) {
+      CurrentLength = DescEnd - CurrentAddress;
     } else {
-      CurrentLength = BaseAddress + Length - CurrentAddress;
+      CurrentLength = ImageEnd - CurrentAddress;
     }
 
     // Preserve the existing caching and virtual attributes, but remove the hardware access bits
@@ -388,7 +393,7 @@ SetUefiImageMemoryAttributes (
     // we have CurrentLength, also, but that is just to handle the final descriptor case where we might take only
     // part of a descriptor, so we can use Descriptor.Length here to move to the next descriptor, which for the final
     // descriptor will exit the loop, regardless of whether we truncated or not
-    CurrentAddress += Descriptor.Length;
+    CurrentAddress += CurrentLength;
     DEBUG ((DEBUG_ERROR, "Next CurrentAddress = %llx\n", CurrentAddress));
   }
 }

@@ -886,8 +886,6 @@ CoreConvertSpace (
           DEBUG ((DEBUG_ERROR, "Entry->Capabilities = %016lx\n", Entry->Capabilities));
           DEBUG ((DEBUG_ERROR, "Entry->EndAddress = %016lx\n", Entry->EndAddress));
 
-          CoreDumpGcdMemorySpaceMap (FALSE);
-
           goto Done;
         }
 
