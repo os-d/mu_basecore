@@ -2371,11 +2371,11 @@ InitializePageAttributesForMemoryProtectionPolicy (
 
   ASSERT_EFI_ERROR (Status);
 
-  if (MemoryMap != NULL) {
-    // Merge contiguous entries with the same attributes to reduce the number
-    // of calls to SetUefiImageMemoryAttributes()
-    MergeMemoryMapByAttribute (MemoryMap, &MemoryMapSize, &DescriptorSize);
-  }
+  // if (MemoryMap != NULL) {
+  //   // Merge contiguous entries with the same attributes to reduce the number
+  //   // of calls to SetUefiImageMemoryAttributes()
+  //   MergeMemoryMapByAttribute (MemoryMap, &MemoryMapSize, &DescriptorSize);
+  // }
 
   StackBase = 0;
   if (gDxeMps.CpuStackGuard) {
@@ -2420,6 +2420,8 @@ InitializePageAttributesForMemoryProtectionPolicy (
   MemoryMapEnd   = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMap + MemoryMapSize);
   while ((UINTN)MemoryMapEntry < (UINTN)MemoryMapEnd) {
     if (MemoryMapEntry->Attribute != 0) {
+      DEBUG ((DEBUG_ERROR, "MemoryMapEntry->PhysicalStart = 0x%016lx\n", MemoryMapEntry->PhysicalStart));
+      DEBUG ((DEBUG_ERROR, "MemoryMapEntry->NumberOfPages = 0x%016lx\n", MemoryMapEntry->NumberOfPages));
       SetUefiImageMemoryAttributes (
         MemoryMapEntry->PhysicalStart & EFI_PAGE_MASK,
         LShiftU64 (MemoryMapEntry->NumberOfPages, EFI_PAGE_SHIFT),
