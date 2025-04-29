@@ -1076,7 +1076,7 @@ RefreshGcdMemoryAttributesFromPaging (
                          EFI_MEMORY_ATTRIBUTE_MASK))
       {
         NewAttributes = (MemorySpaceMap[Index].Attributes &
-                         ~EFI_MEMORY_ATTRIBUTE_MASK) | Attributes;
+                         ~EFI_MEMORY_ATTRIBUTE_MASK) | (Attributes & ~EFI_MEMORY_RP);
         Status = gDS->SetMemorySpaceAttributes (
                         BaseAddress,
                         Length,

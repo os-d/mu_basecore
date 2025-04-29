@@ -335,6 +335,10 @@ CpuSetMemoryAttributes (
     return EFI_SUCCESS;
   }
 
+  // if ((Attributes & EFI_MEMORY_RP) == EFI_MEMORY_RP) {
+  //   CpuBreakpoint ();
+  // }
+
   //
   // During memory attributes updating, new pages may be allocated to setup
   // smaller granularity of page table. Page allocation action might then cause
