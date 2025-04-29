@@ -1736,6 +1736,10 @@ CoreSetMemorySpaceAttributes (
   DEBUG ((DEBUG_GCD, "GCD:SetMemorySpaceAttributes(Base=%016lx,Length=%016lx)\n", BaseAddress, Length));
   DEBUG ((DEBUG_GCD, "  Attributes  = %016lx\n", Attributes));
 
+  // if ((Attributes & EFI_MEMORY_RP) == EFI_MEMORY_RP) {
+  //   CpuBreakpoint();
+  // }
+
   return CoreConvertSpace (GCD_SET_ATTRIBUTES_MEMORY_OPERATION, (EFI_GCD_MEMORY_TYPE)0, (EFI_GCD_IO_TYPE)0, BaseAddress, Length, 0, Attributes);
 }
 
