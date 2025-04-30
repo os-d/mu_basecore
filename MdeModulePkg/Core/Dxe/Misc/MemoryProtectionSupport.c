@@ -1694,7 +1694,7 @@ SetAccessAttributesInMemoryMap (
 
   while (MemoryMapEntry < MemoryMapEnd) {
     if (!IS_BITMAP_INDEX_SET (Bitmap, Index)) {
-      MemoryMapEntry->Attribute = GetPermissionAttributeForMemoryType (MemoryMapEntry->Type);
+      MemoryMapEntry->Attribute = GetPermissionAttributeForMemoryType (MemoryMapEntry->Type) & (~EFI_MEMORY_RP);
       SET_BITMAP_INDEX (Bitmap, Index);
     }
 
