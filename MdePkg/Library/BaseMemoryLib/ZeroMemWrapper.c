@@ -33,6 +33,7 @@
   @return Buffer.
 
 **/
+
 VOID *
 EFIAPI
 ZeroMem (

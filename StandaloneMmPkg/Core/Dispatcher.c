@@ -106,6 +106,7 @@ BOOLEAN  gRequestDispatch = FALSE;
   @return EFI_STATUS
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmLoadImage (
@@ -379,6 +380,7 @@ MmGetDepexSectionAndPreProccess (
   @retval EFI_ALREADY_STARTED   The MM Dispatcher is already running
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 MmDispatcher (
   VOID
@@ -741,6 +743,7 @@ MmAddToDriverList (
   @return EFI_SUCCESS              Dispatcher is executed.
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmDriverDispatchHandler (

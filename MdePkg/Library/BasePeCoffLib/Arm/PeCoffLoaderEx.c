@@ -127,6 +127,7 @@ ThumbMovwMovtImmediatePatch (
   @return Status code.
 
 **/
+
 RETURN_STATUS
 PeCoffLoaderRelocateImageEx (
   IN UINT16     *Reloc,

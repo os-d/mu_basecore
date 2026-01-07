@@ -966,6 +966,7 @@ PeCoffLoaderImageAddress (
                               Extended status information is in the ImageError field of ImageContext.
 
 **/
+
 RETURN_STATUS
 EFIAPI
 PeCoffLoaderRelocateImage (
@@ -1207,7 +1208,6 @@ PeCoffLoaderRelocateImage (
       //
       RelocBase = (EFI_IMAGE_BASE_RELOCATION *)RelocEnd;
     }
-
     ASSERT ((UINTN)FixupData <= (UINTN)ImageContext->FixupData + ImageContext->FixupDataSize);
 
     //

@@ -324,6 +324,7 @@ Finish:
 /**
   Publish MemoryAttributesTable to MM configuration table.
 **/
+__attribute__((section(".mmcode")))
 VOID
 PublishMemoryAttributesTable (
   VOID
@@ -410,6 +411,7 @@ PublishMemoryAttributesTable (
 /**
   This function installs all MM image record information.
 **/
+__attribute__((section(".mmcode")))
 VOID
 MmInstallImageRecord (
   VOID

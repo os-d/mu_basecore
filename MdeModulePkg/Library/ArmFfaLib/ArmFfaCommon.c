@@ -177,6 +177,7 @@ FfaArgsToEfiStatus (
   @param [in, out]  FfaArgs        Ffa arguments
 
 **/
+
 VOID
 EFIAPI
 ArmCallFfa (
@@ -215,6 +216,7 @@ IsFfaSupported (
   @param [out]   CurrentMinorVersion          Current minor version
 
 **/
+
 EFI_STATUS
 EFIAPI
 ArmFfaLibGetVersion (

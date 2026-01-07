@@ -30,6 +30,7 @@ UINTN  mMmSystemTableAllocateSize = 0;
   @retval EFI_OUT_OF_RESOURCES  There is not enough memory available to complete the operation.
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmInstallConfigurationTable (

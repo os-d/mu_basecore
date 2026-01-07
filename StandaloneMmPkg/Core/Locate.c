@@ -431,6 +431,7 @@ MmLocateHandle (
   @retval EFI_INVALID_PARAMETER  One or more parameters are not valid.
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmLocateHandleBuffer (

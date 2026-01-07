@@ -34,6 +34,7 @@ STATIC VOID  *gHobList = NULL;
   @retval Other value     The constructor can't get HobList.
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 HobLibConstructor (

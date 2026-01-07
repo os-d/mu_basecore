@@ -205,6 +205,7 @@ MmInstallProtocolInterface (
   @retval EFI_SUCCESS            Protocol interface successfully installed
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 MmInstallProtocolInterfaceNotify (
   IN OUT EFI_HANDLE          *UserHandle,

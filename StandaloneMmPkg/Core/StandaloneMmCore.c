@@ -96,6 +96,7 @@ VOID            *mInternalCommBufferCopy;
   @return EFI_NOT_AVAILABLE_YET
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmEfiNotAvailableYetArg5 (
@@ -125,6 +126,7 @@ MmEfiNotAvailableYetArg5 (
   @return Status Code
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmExitBootServiceHandler (
@@ -165,6 +167,7 @@ MmExitBootServiceHandler (
   @return Status Code
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmReadyToBootHandler (
@@ -209,6 +212,7 @@ MmReadyToBootHandler (
   @return Status Code
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmReadyToLockHandler (
@@ -284,6 +288,7 @@ MmReadyToLockHandler (
   @return Status Code
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmEndOfPeiHandler (
@@ -324,6 +329,7 @@ MmEndOfPeiHandler (
   @return Status Code
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmEndOfDxeHandler (
@@ -354,6 +360,7 @@ MmEndOfDxeHandler (
   Install LoadedImage protocol for MM Core.
 
 **/
+__attribute__((section(".mmcode")))
 VOID
 MmCoreInstallLoadedImage (
   VOID
@@ -433,6 +440,7 @@ MmCoreInstallLoadedImage (
 /**
   Prepare communication buffer for MMI.
 **/
+__attribute__((section(".mmcode")))
 VOID
 MmCorePrepareCommunicationBuffer (
   VOID
@@ -496,6 +504,7 @@ MmCorePrepareCommunicationBuffer (
                                     needed by MM Foundation.
 
 **/
+__attribute__((section(".mmcode")))
 VOID
 EFIAPI
 MmEntryPoint (
@@ -721,6 +730,7 @@ MigrateMemoryAllocationHobs (
 
   @retval Pointer to the new location of hob list in MMRAM.
 **/
+__attribute__((section(".mmcode")))
 VOID *
 InitializeMmHobList (
   IN VOID                  *HobStart,
@@ -801,6 +811,7 @@ InitializeMmHobList (
   @retval EFI_SUCCESS             Success.
   @retval EFI_UNSUPPORTED         Unsupported operation.
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 StandaloneMmMain (
@@ -863,9 +874,9 @@ StandaloneMmMain (
 
   ProcessLibraryConstructorList (gHobList, &gMmCoreMmst);
 
-  DEBUG_CODE (
-    PrintHobList (gHobList, NULL);
-    );
+  // DEBUG_CODE (
+  //   PrintHobList (gHobList, NULL);
+  //   );
 
   //
   // Register notification for EFI_MM_CONFIGURATION_PROTOCOL registration and

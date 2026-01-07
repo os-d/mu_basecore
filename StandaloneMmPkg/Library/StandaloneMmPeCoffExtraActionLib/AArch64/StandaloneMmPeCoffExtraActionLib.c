@@ -275,6 +275,8 @@ PeCoffLoaderRelocateImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
+  // volatile UINTN Dummy = 0;
+  // while (Dummy == 0) {}   
   UpdatePeCoffPermissions (
     ImageContext,
     ArmPeClearMemoryRegionNoExec,   // MU_CHANGE

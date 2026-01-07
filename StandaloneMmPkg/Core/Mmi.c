@@ -155,6 +155,7 @@ MmCoreFindMmiEntry (
   @retval EFI_SUCCESS                        Interrupt source was handled and quiesced.
 
 **/
+__attribute__((section(".mmcode")))
 EFI_STATUS
 EFIAPI
 MmiManage (

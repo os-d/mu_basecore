@@ -155,6 +155,7 @@ PopBool (
                                 was found.
 
 **/
+__attribute__((section(".mmcode")))
 BOOLEAN
 MmIsSchedulable (
   IN  EFI_MM_DRIVER_ENTRY  *DriverEntry
