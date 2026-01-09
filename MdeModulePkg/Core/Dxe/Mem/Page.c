@@ -759,7 +759,7 @@ CoreSetMemoryTypeInformationRange (
       mMemoryTypeStatistics[Type].BaseAddress    = Top;
       mMemoryTypeStatistics[Type].MaximumAddress = Top + BinSize - 1;
 
-      DEBUG ((DEBUG_ERROR, "OSDDEBUG4 %a: Memory Type %d assigned bin 0x%llx - 0x%llx\n", __func__, Type, mMemoryTypeStatistics[Type].BaseAddress, mMemoryTypeStatistics[Type].MaximumAddress));
+      DEBUG ((DEBUG_ERROR, "OSDDEBUG4 %a: Memory Type %d assigned bin 0x%llx - 0x%llx Num Pages: %llx\n", __func__, Type, mMemoryTypeStatistics[Type].BaseAddress, mMemoryTypeStatistics[Type].MaximumAddress, gMemoryTypeInformation[Index].NumberOfPages));
 
       //
       // If the current base address is the lowest address so far, then update
