@@ -95,20 +95,6 @@ EFI_MEMORY_TYPE_INFORMATION  gMemoryTypeInformation[EfiMaxMemoryType + 1] = {
 //
 GLOBAL_REMOVE_IF_UNREFERENCED   BOOLEAN  gLoadFixedAddressCodeMemoryReady = FALSE;
 
-// MU_CHANGE START: Add function prototype to be used in CoreAddRange
-
-/**
-  Internal function.  Moves any memory descriptors that are on the
-  temporary descriptor stack to heap.
-
-**/
-VOID
-CoreFreeMemoryMapStack (
-  VOID
-  );
-
-// MU_CHANGE END
-
 /**
   Enter critical section by gaining lock on gMemoryLock.
 
@@ -274,78 +260,10 @@ CoreAddRange (
   LIST_ENTRY  *Link;
   MEMORY_MAP  *Entry;
 
-  // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-  EFI_MEMORY_TYPE  BucketType;
-  EFI_MEMORY_TYPE  MergeType;
-  BOOLEAN          Break;
-
-  // MU_CHANGE ENDs
-
   ASSERT ((Start & EFI_PAGE_MASK) == 0);
   ASSERT (End > Start);
 
   ASSERT_LOCKED (&gMemoryLock);
-
-  // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-  // Find the bucket type for the incoming memory region.
-  Break = FALSE;
-  for (BucketType = (EFI_MEMORY_TYPE)0; BucketType < EfiMaxMemoryType; BucketType++) {
-    //
-    // If the number of pages for this memory type is not zero, the input region better
-    // be within the same bucket. Otherwise, we will handle the ones we care about,
-    // the special memory types, in chunks.
-    //
-    if (mMemoryTypeStatistics[BucketType].Special && (mMemoryTypeStatistics[BucketType].NumberOfPages != 0)) {
-      if ((Start <= mMemoryTypeStatistics[BucketType].MaximumAddress) &&
-          (End > mMemoryTypeStatistics[BucketType].MaximumAddress))
-      {
-        //
-        // The start overlaps the bucket, so we let self-recursion handle the tail, and we
-        // handle the head.
-        //
-        // |----------|---Special Memory Bucket---|----------|
-        // |--------------^---------------------------^------|
-        // |------------Start------------------------End-----|
-        //
-        CoreAddRange (
-          Type,
-          mMemoryTypeStatistics[BucketType].MaximumAddress + 1,
-          End,
-          Attribute
-          );
-        CoreFreeMemoryMapStack ();
-        End   = mMemoryTypeStatistics[BucketType].MaximumAddress;
-        Break = TRUE;
-      }
-
-      if ((Start < mMemoryTypeStatistics[BucketType].BaseAddress) &&
-          (End >= mMemoryTypeStatistics[BucketType].BaseAddress))
-      {
-        // The end overlaps the bucket, so we let self-recursion handle the head, and we
-        // handle the tail.
-        //
-        // |----------|---Special Memory Bucket---|----------|
-        // |------^-------------------^----------------------|
-        // |----Start----------------End---------------------|
-        //
-        CoreAddRange (
-          Type,
-          Start,
-          mMemoryTypeStatistics[BucketType].BaseAddress - 1,
-          Attribute
-          );
-        CoreFreeMemoryMapStack ();
-        Start = mMemoryTypeStatistics[BucketType].BaseAddress;
-        Break = TRUE;
-      }
-
-      if (Break) {
-        break;
-      }
-    }
-  }
-
-  // MU_CHANGE ENDS
 
   DEBUG ((DEBUG_PAGE, "AddRange: %lx-%lx to %d\n", Start, End, Type));
 
@@ -391,8 +309,7 @@ CoreAddRange (
   // and the same Attribute
   //
 
-  MergeType = GetBucketMemoryType (Start, End); // MU_CHANGE: Add check to merge memory regions of the bucket type
-  Link      = gMemoryMap.ForwardLink;
+  Link  = gMemoryMap.ForwardLink;
   while (Link != &gMemoryMap) {
     Entry = CR (Link, MEMORY_MAP, Link, MEMORY_MAP_SIGNATURE);
     Link  = Link->ForwardLink;
@@ -404,14 +321,6 @@ CoreAddRange (
     if (Entry->Attribute != Attribute) {
       continue;
     }
-
-    // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-    // We need to make sure we can only merge with the same type as the merge type
-    if (MergeType != GetBucketMemoryType (Entry->Start, Entry->End)) {
-      continue;
-    }
-
-    // MU_CHANGE ENDS
 
     if (Entry->End + 1 == Start) {
       Start = Entry->Start;
@@ -986,18 +895,12 @@ CoreAddMemoryDescriptor (
     }
 
     if (gMemoryTypeInformation[Index].NumberOfPages != 0) {
-      // MU_CHANGE Starts
-      // Activate the statistics so that the free page operation can be performed
-      // with valid bucket information.
-      mMemoryTypeStatistics[Type].NumberOfPages   = gMemoryTypeInformation[Index].NumberOfPages;
-      gMemoryTypeInformation[Index].NumberOfPages = 0;
       CoreFreePages (
         mMemoryTypeStatistics[Type].BaseAddress,
-        (UINTN)mMemoryTypeStatistics[Type].NumberOfPages
+        gMemoryTypeInformation[Index].NumberOfPages
         );
-      // mMemoryTypeStatistics[Type].NumberOfPages   = gMemoryTypeInformation[Index].NumberOfPages;
-      // gMemoryTypeInformation[Index].NumberOfPages = 0;
-      // MU_CHANGE Ends
+      mMemoryTypeStatistics[Type].NumberOfPages   = gMemoryTypeInformation[Index].NumberOfPages;
+      gMemoryTypeInformation[Index].NumberOfPages = 0;
     }
   }
 
@@ -2423,6 +2326,22 @@ CoreGetMemoryMap (
 
   MergeMemoryMap (MemoryMapStart, &BufferSize, Size);
   MemoryMapEnd = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMapStart + BufferSize);
+
+  // print out the memory map for debug purpose
+  EFI_MEMORY_DESCRIPTOR  *MemoryMapEntry;
+
+  MemoryMapEntry = MemoryMapStart;
+  while (MemoryMapEntry < MemoryMapEnd) {
+    DEBUG ((
+      DEBUG_INFO,
+      "Memory Range: 0x%llx - 0x%llx. Type:%d, Attributes: 0x%llx\n",
+      MemoryMapEntry->PhysicalStart,
+      MemoryMapEntry->PhysicalStart + EFI_PAGES_TO_SIZE (MemoryMapEntry->NumberOfPages),
+      MemoryMapEntry->Type,
+      MemoryMapEntry->Attribute
+      ));
+    MemoryMapEntry = NEXT_MEMORY_DESCRIPTOR (MemoryMapEntry, *DescriptorSize);
+  }
 
   Status = EFI_SUCCESS;
 
