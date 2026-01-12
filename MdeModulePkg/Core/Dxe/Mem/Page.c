@@ -2577,6 +2577,36 @@ CoreGetMemoryMap (
       MemoryMapEntry->Type,
       MemoryMapEntry->Attribute
       ));
+    // MU_CHANGE STARTS
+    for (Type = (EFI_MEMORY_TYPE)0; Type < EfiMaxMemoryType; Type++) {
+      if (mMemoryTypeStatistics[Type].Special &&
+          (mMemoryTypeStatistics[Type].NumberOfPages > 0) &&
+          MemoryRegionsIntersect (
+            MemoryMapEntry->PhysicalStart,
+            MemoryMapEntry->PhysicalStart + EFI_PAGES_TO_SIZE (MemoryMapEntry->NumberOfPages) - 1,
+            mMemoryTypeStatistics[Type].BaseAddress,
+            mMemoryTypeStatistics[Type].MaximumAddress
+            )
+         )
+      {
+        // There is complete overlap with a special memory type bin.
+        // The type must match the bin type.
+        if (MemoryMapEntry->Type != Type) {
+          DEBUG ((
+            DEBUG_ERROR,
+            "%a: Memory Map entry type does not match special memory type bin. Bucket Type %d, Type %d, Start 0x%lx, End 0x%lx\n",
+            __func__,
+            Type,
+            MemoryMapEntry->Type,
+            MemoryMapEntry->PhysicalStart,
+            MemoryMapEntry->PhysicalStart + EFI_PAGES_TO_SIZE (MemoryMapEntry->NumberOfPages)
+            ));
+
+          ASSERT (FALSE);
+        }
+      }
+    }
+    // MU_CHANGE ENDS
     MemoryMapEntry = NEXT_MEMORY_DESCRIPTOR (MemoryMapEntry, *DescriptorSize);
   }
 
