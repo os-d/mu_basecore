@@ -616,8 +616,6 @@ CoreAddMemoryDescriptor (
   )
 {
   EFI_PHYSICAL_ADDRESS  End;
-  UINT64                Alignment;
-  UINT64                BinSize;
 
   if ((Start & EFI_PAGE_MASK) != 0) {
     return;
