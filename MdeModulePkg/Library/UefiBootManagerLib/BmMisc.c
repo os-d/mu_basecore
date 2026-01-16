@@ -9,6 +9,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "InternalBm.h"
 
+typedef struct {
+  EFI_MEMORY_TYPE         Type;
+  EFI_MEMORY_DESCRIPTOR   *FirstRangeDescriptor;
+  BOOLEAN                 DuplicateRangeFound;
+} MEMORY_TYPE_INFO_CHECK;
+
 /**
   Delete the instance in Multi which matches partly with Single instance
 
@@ -210,9 +216,38 @@ BmSetMemoryTypeInformationVariable (
   BOOLEAN                      MemoryTypeInformationModified;
   BOOLEAN                      MemoryTypeInformationVariableExists;
   EFI_BOOT_MODE                BootMode;
+  UINTN                        MemoryMapSize;
+  EFI_MEMORY_DESCRIPTOR        *MemoryMap;
+  EFI_MEMORY_DESCRIPTOR        *Entry;
+  UINTN                        MapKey;
+  UINTN                        DescriptorSize;
+  UINT32                       DescriptorVersion;
+  UINTN                        Count;
 
   MemoryTypeInformationModified       = FALSE;
   MemoryTypeInformationVariableExists = FALSE;
+  MemoryMapSize                       = 0;
+  MemoryMap                           = NULL;
+
+  MEMORY_TYPE_INFO_CHECK  mMemoryTypeInfoCheck[EfiMaxMemoryType + 1] = {
+  { EfiReservedMemoryType,      NULL, FALSE },
+  { EfiLoaderCode,              NULL, FALSE },
+  { EfiLoaderData,              NULL, FALSE },
+  { EfiBootServicesCode,        NULL, FALSE },
+  { EfiBootServicesData,        NULL, FALSE },
+  { EfiRuntimeServicesCode,     NULL, FALSE },
+  { EfiRuntimeServicesData,     NULL, FALSE },
+  { EfiConventionalMemory,      NULL, FALSE },
+  { EfiUnusableMemory,          NULL, FALSE },
+  { EfiACPIReclaimMemory,       NULL, FALSE },
+  { EfiACPIMemoryNVS,           NULL, FALSE },
+  { EfiMemoryMappedIO,          NULL, FALSE },
+  { EfiMemoryMappedIOPortSpace, NULL, FALSE },
+  { EfiPalCode,                 NULL, FALSE },
+  { EfiPersistentMemory,        NULL, FALSE },
+  { EfiUnacceptedMemoryType,    NULL, FALSE },
+  { EfiMaxMemoryType,           NULL, FALSE }
+};
 
   BootMode = GetBootModeHob ();
   //
@@ -270,6 +305,61 @@ BmSetMemoryTypeInformationVariable (
   PreviousMemoryTypeInformation = AllocateCopyPool (VariableSize, GET_GUID_HOB_DATA (GuidHob));
   if (PreviousMemoryTypeInformation == NULL) {
     return;
+  }
+
+  //Get the memory map so we can check for RT memory map fragmentation
+  Status = gBS->GetMemoryMap (&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
+  if (Status == EFI_BUFFER_TOO_SMALL) {
+    // add a little buffer in case the memory map changes from allocation or higher TPL allocations
+    MemoryMap = AllocatePool (MemoryMapSize + (sizeof (EFI_MEMORY_DESCRIPTOR) * 10));
+    if (MemoryMap != NULL) {
+      Status = gBS->GetMemoryMap (&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
+      if (Status == EFI_SUCCESS) {
+        Count = MemoryMapSize / DescriptorSize;
+        Entry = MemoryMap;
+        for (Index = 0; Index < Count; Index++) {
+          if (Entry->Type <= EfiMaxMemoryType) {
+            // Find the index in the HOB data. This will be the same index into our module global check array.
+            for (Index1 = 0; PreviousMemoryTypeInformation[Index1].Type != EfiMaxMemoryType; Index1++) {
+              if (PreviousMemoryTypeInformation[Index1].Type == Entry->Type) {
+                break;
+              }
+            }
+
+            if ((PreviousMemoryTypeInformation[Index1].Type == Entry->Type) && (PreviousMemoryTypeInformation[Index1].NumberOfPages != 0)) {
+              if (mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor == NULL) {
+                // First time we've seen this memory type in the map
+                mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor = Entry;
+              } else {
+                // We have fragmentation
+                if (!mMemoryTypeInfoCheck[Entry->Type].DuplicateRangeFound) {
+                  mMemoryTypeInfoCheck[Entry->Type].DuplicateRangeFound = TRUE;
+                  DEBUG ((DEBUG_WARN, "Memory Type Information fragmentation detected for memory type %d\n", Entry->Type));
+                  DEBUG ((
+                    DEBUG_WARN,
+                    " First Range: 0x%llx - 0x%llx\n",
+                    mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor->PhysicalStart,
+                    mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor->PhysicalStart + EFI_PAGES_TO_SIZE (mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor->NumberOfPages) - 1
+                    ));
+                }
+
+                DEBUG ((
+                  DEBUG_WARN,
+                  " Fragmented Range for Type %x: 0x%llx - 0x%llx\n",
+                  Entry->Type,
+                  Entry->PhysicalStart,
+                  Entry->PhysicalStart + EFI_PAGES_TO_SIZE (Entry->NumberOfPages) - 1
+                  ));
+              }
+            }
+          }
+
+          Entry = NEXT_MEMORY_DESCRIPTOR (Entry, DescriptorSize);
+        }
+      }
+
+      FreePool (MemoryMap);
+    }
   }
 
   //
