@@ -10,9 +10,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "InternalBm.h"
 
 typedef struct {
-  EFI_MEMORY_TYPE         Type;
-  EFI_MEMORY_DESCRIPTOR   *FirstRangeDescriptor;
-  BOOLEAN                 DuplicateRangeFound;
+  EFI_MEMORY_TYPE          Type;
+  EFI_MEMORY_DESCRIPTOR    *FirstRangeDescriptor;
+  BOOLEAN                  DuplicateRangeFound;
+  EFI_MEMORY_DESCRIPTOR    *BinRangeDescriptor;
 } MEMORY_TYPE_INFO_CHECK;
 
 /**
@@ -188,6 +189,46 @@ GetMinimumAllocation (
 // MU_CHANGE End: Minimum Allocation
 
 /**
+ Look for Resource Descriptor HOB with a ResourceType of System Memory
+ and an Owner GUID of gEfiMemoryTypeInformationGuid. If more than 1 is
+ found, then return NULL.
+
+  @return Pointer to the Resource Descriptor HOB if found and valid,
+          otherwise NULL.
+**/
+STATIC
+EFI_HOB_RESOURCE_DESCRIPTOR *
+GetMemoryTypeInformationResourceHob (
+  VOID
+  )
+{
+  UINTN                        Count;
+  EFI_PEI_HOB_POINTERS         Hob;
+  EFI_HOB_RESOURCE_DESCRIPTOR  *ResourceHob;
+
+  Count = 0;
+  for (Hob.Raw = GetFirstHob (EFI_HOB_TYPE_RESOURCE_DESCRIPTOR); !END_OF_HOB_LIST (Hob); Hob.Raw = GET_NEXT_HOB (Hob)) {
+    ResourceHob = Hob.ResourceDescriptor;
+    if (!CompareGuid (&ResourceHob->Owner, &gEfiMemoryTypeInformationGuid)) {
+      continue;
+    }
+
+    Count++;
+    if (ResourceHob->ResourceType != EFI_RESOURCE_SYSTEM_MEMORY) {
+      continue;
+    }
+
+    ResourceHob = Hob.ResourceDescriptor;
+  }
+
+  if (Count > 1) {
+    return NULL;
+  }
+
+  return ResourceHob;
+}
+
+/**
   This routine adjust the memory information for different memory type and
   save them into the variables for next boot. It resets the system when
   memory information is updated and the current boot option belongs to
@@ -223,31 +264,35 @@ BmSetMemoryTypeInformationVariable (
   UINTN                        DescriptorSize;
   UINT32                       DescriptorVersion;
   UINTN                        Count;
+  EFI_HOB_RESOURCE_DESCRIPTOR  *ResourceHob;
+  EFI_PHYSICAL_ADDRESS         BinStart;
+  EFI_PHYSICAL_ADDRESS         BinEnd;
 
   MemoryTypeInformationModified       = FALSE;
   MemoryTypeInformationVariableExists = FALSE;
   MemoryMapSize                       = 0;
   MemoryMap                           = NULL;
+  ResourceHob                         = NULL;
 
   MEMORY_TYPE_INFO_CHECK  mMemoryTypeInfoCheck[EfiMaxMemoryType + 1] = {
-  { EfiReservedMemoryType,      NULL, FALSE },
-  { EfiLoaderCode,              NULL, FALSE },
-  { EfiLoaderData,              NULL, FALSE },
-  { EfiBootServicesCode,        NULL, FALSE },
-  { EfiBootServicesData,        NULL, FALSE },
-  { EfiRuntimeServicesCode,     NULL, FALSE },
-  { EfiRuntimeServicesData,     NULL, FALSE },
-  { EfiConventionalMemory,      NULL, FALSE },
-  { EfiUnusableMemory,          NULL, FALSE },
-  { EfiACPIReclaimMemory,       NULL, FALSE },
-  { EfiACPIMemoryNVS,           NULL, FALSE },
-  { EfiMemoryMappedIO,          NULL, FALSE },
-  { EfiMemoryMappedIOPortSpace, NULL, FALSE },
-  { EfiPalCode,                 NULL, FALSE },
-  { EfiPersistentMemory,        NULL, FALSE },
-  { EfiUnacceptedMemoryType,    NULL, FALSE },
-  { EfiMaxMemoryType,           NULL, FALSE }
-};
+    { EfiReservedMemoryType,      NULL, FALSE, NULL },
+    { EfiLoaderCode,              NULL, FALSE, NULL },
+    { EfiLoaderData,              NULL, FALSE, NULL },
+    { EfiBootServicesCode,        NULL, FALSE, NULL },
+    { EfiBootServicesData,        NULL, FALSE, NULL },
+    { EfiRuntimeServicesCode,     NULL, FALSE, NULL },
+    { EfiRuntimeServicesData,     NULL, FALSE, NULL },
+    { EfiConventionalMemory,      NULL, FALSE, NULL },
+    { EfiUnusableMemory,          NULL, FALSE, NULL },
+    { EfiACPIReclaimMemory,       NULL, FALSE, NULL },
+    { EfiACPIMemoryNVS,           NULL, FALSE, NULL },
+    { EfiMemoryMappedIO,          NULL, FALSE, NULL },
+    { EfiMemoryMappedIOPortSpace, NULL, FALSE, NULL },
+    { EfiPalCode,                 NULL, FALSE, NULL },
+    { EfiPersistentMemory,        NULL, FALSE, NULL },
+    { EfiUnacceptedMemoryType,    NULL, FALSE, NULL },
+    { EfiMaxMemoryType,           NULL, FALSE, NULL }
+  };
 
   BootMode = GetBootModeHob ();
   //
@@ -301,13 +346,22 @@ BmSetMemoryTypeInformationVariable (
     return;
   }
 
+  // Attempt to get the Resource Descriptor HOB for Memory Type Information. This
+  // may not exist, so we will miss validating that the bins are in the correct location
+  // and can only validate fragmentation and page count.
+  ResourceHob = GetMemoryTypeInformationResourceHob ();
+  if (ResourceHob != NULL) {
+    BinStart = ResourceHob->PhysicalStart;
+    BinEnd   = BinStart + ResourceHob->ResourceLength - 1;
+  }
+
   VariableSize                  = GET_GUID_HOB_DATA_SIZE (GuidHob);
   PreviousMemoryTypeInformation = AllocateCopyPool (VariableSize, GET_GUID_HOB_DATA (GuidHob));
   if (PreviousMemoryTypeInformation == NULL) {
     return;
   }
 
-  //Get the memory map so we can check for RT memory map fragmentation
+  // Get the memory map so we can check for RT memory map fragmentation
   Status = gBS->GetMemoryMap (&MemoryMapSize, MemoryMap, &MapKey, &DescriptorSize, &DescriptorVersion);
   if (Status == EFI_BUFFER_TOO_SMALL) {
     // add a little buffer in case the memory map changes from allocation or higher TPL allocations
@@ -327,6 +381,16 @@ BmSetMemoryTypeInformationVariable (
             }
 
             if ((PreviousMemoryTypeInformation[Index1].Type == Entry->Type) && (PreviousMemoryTypeInformation[Index1].NumberOfPages != 0)) {
+              if (ResourceHob != NULL) {
+                // Check if the memory range intersects the bin range
+                if (((Entry->PhysicalStart >= BinStart) && (Entry->PhysicalStart <= BinEnd)) ||
+                    ((Entry->PhysicalStart + EFI_PAGES_TO_SIZE (Entry->NumberOfPages) - 1 >= BinStart) &&
+                     (Entry->PhysicalStart + EFI_PAGES_TO_SIZE (Entry->NumberOfPages) - 1 <= BinEnd)))
+                {
+                  mMemoryTypeInfoCheck[Entry->Type].BinRangeDescriptor = Entry;
+                }
+              }
+
               if (mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor == NULL) {
                 // First time we've seen this memory type in the map
                 mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor = Entry;
@@ -359,6 +423,16 @@ BmSetMemoryTypeInformationVariable (
       }
 
       FreePool (MemoryMap);
+    }
+  }
+
+  // Now go through our collected info and check the case where a RT allocation landed adjacent to the bin and the
+  // descriptor got merged. This could also lead to a failed S4 resume.
+  for (Index = 0; PreviousMemoryTypeInformation[Index].Type != EfiMaxMemoryType; Index++) {
+    Entry = mMemoryTypeInfoCheck[PreviousMemoryTypeInformation[Index].Type].BinRangeDescriptor;
+    if (Entry != NULL && (Entry->PhysicalStart < BinStart || (Entry->PhysicalStart + EFI_PAGES_TO_SIZE (Entry->NumberOfPages) - 1) > BinEnd))
+    {
+      DEBUG ((DEBUG_WARN, "Memory Type Information bin overrun detected for type %d\n", PreviousMemoryTypeInformation[Index].Type));
     }
   }
 
