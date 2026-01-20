@@ -13,6 +13,7 @@ typedef struct {
   EFI_MEMORY_TYPE          Type;
   EFI_MEMORY_DESCRIPTOR    *FirstRangeDescriptor;
   BOOLEAN                  DuplicateRangeFound;
+  UINT64                   NumberOfPages;
   EFI_MEMORY_DESCRIPTOR    *BinRangeDescriptor;
 } MEMORY_TYPE_INFO_CHECK;
 
@@ -245,7 +246,6 @@ BmSetMemoryTypeInformationVariable (
 {
   EFI_STATUS                   Status;
   EFI_MEMORY_TYPE_INFORMATION  *PreviousMemoryTypeInformation;
-  EFI_MEMORY_TYPE_INFORMATION  *CurrentMemoryTypeInformation;
   UINTN                        VariableSize;
   UINTN                        Index;
   UINTN                        Index1;
@@ -267,32 +267,31 @@ BmSetMemoryTypeInformationVariable (
   EFI_HOB_RESOURCE_DESCRIPTOR  *ResourceHob;
   EFI_PHYSICAL_ADDRESS         BinStart;
   EFI_PHYSICAL_ADDRESS         BinEnd;
+   MEMORY_TYPE_INFO_CHECK  mMemoryTypeInfoCheck[EfiMaxMemoryType + 1] = {
+    { EfiReservedMemoryType,      NULL, FALSE, 0, NULL },
+    { EfiLoaderCode,              NULL, FALSE, 0, NULL },
+    { EfiLoaderData,              NULL, FALSE, 0, NULL },
+    { EfiBootServicesCode,        NULL, FALSE, 0, NULL },
+    { EfiBootServicesData,        NULL, FALSE, 0, NULL },
+    { EfiRuntimeServicesCode,     NULL, FALSE, 0, NULL },
+    { EfiRuntimeServicesData,     NULL, FALSE, 0, NULL },
+    { EfiConventionalMemory,      NULL, FALSE, 0, NULL },
+    { EfiUnusableMemory,          NULL, FALSE, 0, NULL },
+    { EfiACPIReclaimMemory,       NULL, FALSE, 0, NULL },
+    { EfiACPIMemoryNVS,           NULL, FALSE, 0, NULL },
+    { EfiMemoryMappedIO,          NULL, FALSE, 0, NULL },
+    { EfiMemoryMappedIOPortSpace, NULL, FALSE, 0, NULL },
+    { EfiPalCode,                 NULL, FALSE, 0, NULL },
+    { EfiPersistentMemory,        NULL, FALSE, 0, NULL },
+    { EfiUnacceptedMemoryType,    NULL, FALSE, 0, NULL },
+    { EfiMaxMemoryType,           NULL, FALSE, 0, NULL }
+  };
 
   MemoryTypeInformationModified       = FALSE;
   MemoryTypeInformationVariableExists = FALSE;
   MemoryMapSize                       = 0;
   MemoryMap                           = NULL;
-  ResourceHob                         = NULL;
-
-  MEMORY_TYPE_INFO_CHECK  mMemoryTypeInfoCheck[EfiMaxMemoryType + 1] = {
-    { EfiReservedMemoryType,      NULL, FALSE, NULL },
-    { EfiLoaderCode,              NULL, FALSE, NULL },
-    { EfiLoaderData,              NULL, FALSE, NULL },
-    { EfiBootServicesCode,        NULL, FALSE, NULL },
-    { EfiBootServicesData,        NULL, FALSE, NULL },
-    { EfiRuntimeServicesCode,     NULL, FALSE, NULL },
-    { EfiRuntimeServicesData,     NULL, FALSE, NULL },
-    { EfiConventionalMemory,      NULL, FALSE, NULL },
-    { EfiUnusableMemory,          NULL, FALSE, NULL },
-    { EfiACPIReclaimMemory,       NULL, FALSE, NULL },
-    { EfiACPIMemoryNVS,           NULL, FALSE, NULL },
-    { EfiMemoryMappedIO,          NULL, FALSE, NULL },
-    { EfiMemoryMappedIOPortSpace, NULL, FALSE, NULL },
-    { EfiPalCode,                 NULL, FALSE, NULL },
-    { EfiPersistentMemory,        NULL, FALSE, NULL },
-    { EfiUnacceptedMemoryType,    NULL, FALSE, NULL },
-    { EfiMaxMemoryType,           NULL, FALSE, NULL }
-  };
+  ResourceHob                         = NULL; 
 
   BootMode = GetBootModeHob ();
   //
@@ -319,18 +318,6 @@ BmSetMemoryTypeInformationVariable (
     if (Status == EFI_BUFFER_TOO_SMALL) {
       MemoryTypeInformationVariableExists = TRUE;
     }
-  }
-
-  //
-  // Retrieve the current memory usage statistics.  If they are not found, then
-  // no adjustments can be made to the Memory Type Information variable.
-  //
-  Status = EfiGetSystemConfigurationTable (
-             &gEfiMemoryTypeInformationGuid,
-             (VOID **)&CurrentMemoryTypeInformation
-             );
-  if (EFI_ERROR (Status) || (CurrentMemoryTypeInformation == NULL)) {
-    return;
   }
 
   //
@@ -391,6 +378,8 @@ BmSetMemoryTypeInformationVariable (
                 }
               }
 
+              mMemoryTypeInfoCheck[Entry->Type].NumberOfPages += Entry->NumberOfPages;
+
               if (mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor == NULL) {
                 // First time we've seen this memory type in the map
                 mMemoryTypeInfoCheck[Entry->Type].FirstRangeDescriptor = Entry;
@@ -446,22 +435,12 @@ BmSetMemoryTypeInformationVariable (
   // MU_CHANGE: End Minimum Allocation
 
   for (Index = 0; PreviousMemoryTypeInformation[Index].Type != EfiMaxMemoryType; Index++) {
-    for (Index1 = 0; CurrentMemoryTypeInformation[Index1].Type != EfiMaxMemoryType; Index1++) {
-      if (PreviousMemoryTypeInformation[Index].Type == CurrentMemoryTypeInformation[Index1].Type) {
-        break;
-      }
-    }
-
-    if (CurrentMemoryTypeInformation[Index1].Type == EfiMaxMemoryType) {
-      continue;
-    }
-
     //
     // Previous is the number of pages pre-allocated
-    // Current is the number of pages actually needed
+    // Current is the number of pages actually needed across the entire memory map
     //
     Previous = PreviousMemoryTypeInformation[Index].NumberOfPages;
-    Current  = CurrentMemoryTypeInformation[Index1].NumberOfPages;
+    Current  = (UINT32)mMemoryTypeInfoCheck[PreviousMemoryTypeInformation[Index].Type].NumberOfPages;
     Next     = Previous;
 
     //
