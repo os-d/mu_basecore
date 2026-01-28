@@ -119,7 +119,7 @@
   AdvLoggerAccessLib|MdeModulePkg/Library/AdvLoggerAccessLibNull/AdvLoggerAccessLib.inf       ## MU_CHANGE
   DeviceStateLib|MdeModulePkg/Library/DeviceStateLib/DeviceStateLib.inf # MU_CHANGE
   PanicLib|MdePkg/Library/BasePanicLibNull/BasePanicLibNull.inf  # MU_CHANGE
-
+  BaseMemoryBinLib|MdeModulePkg/Library/BaseMemoryBinLib/BaseMemoryBinLib.inf
 
 # MU_CHANGE START Include MemoryProtectionHobLib
 [LibraryClasses.common.DXE_DRIVER, LibraryClasses.common.DXE_CORE, LibraryClasses.common.UEFI_APPLICATION]
@@ -405,6 +405,7 @@
   MdeModulePkg/Library/AdvLoggerAccessLibNull/AdvLoggerAccessLib.inf              # MU_CHANGE
   MdeModulePkg/Library/IoMmuLib/IoMmuLib.inf                                      # MU_CHANGE
   MdeModulePkg/Library/IoMmuLibNull/IoMmuLibNull.inf                              # MU_CHANGE
+  MdeModulePkg/Library/BaseMemoryBinLib/BaseMemoryBinLib.inf
 
   MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
   MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
