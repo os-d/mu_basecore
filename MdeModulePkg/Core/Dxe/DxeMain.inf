@@ -75,6 +75,7 @@
   MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
+  BaseMemoryBinLib
   BaseMemoryLib
   CacheMaintenanceLib
   UefiDecompressLib

@@ -2179,31 +2179,6 @@ CoreConvertResourceDescriptorHobAttributesToCapabilities (
 }
 
 /**
-  Calculate total memory bin size neeeded.
-
-  @return The total memory bin size neeeded.
-
-**/
-UINT64
-CalculateTotalMemoryBinSizeNeeded (
-  VOID
-  )
-{
-  UINTN   Index;
-  UINT64  TotalSize;
-
-  //
-  // Loop through each memory type in the order specified by the gMemoryTypeInformation[] array
-  //
-  TotalSize = 0;
-  for (Index = 0; gMemoryTypeInformation[Index].Type != EfiMaxMemoryType; Index++) {
-    TotalSize += LShiftU64 (gMemoryTypeInformation[Index].NumberOfPages, EFI_PAGE_SHIFT);
-  }
-
-  return TotalSize;
-}
-
-/**
    Find the largest region in the specified region that is not covered by an existing memory allocation
 
    @param BaseAddress   On input start of the region to check.
@@ -2284,14 +2259,11 @@ CoreInitializeMemoryServices (
   )
 {
   EFI_PEI_HOB_POINTERS         Hob;
-  EFI_MEMORY_TYPE_INFORMATION  *EfiMemoryTypeInformation;
-  UINTN                        DataSize;
   BOOLEAN                      Found;
   EFI_HOB_HANDOFF_INFO_TABLE   *PhitHob;
   EFI_HOB_RESOURCE_DESCRIPTOR  *ResourceHob;
   EFI_HOB_RESOURCE_DESCRIPTOR  *PhitResourceHob;
   EFI_HOB_RESOURCE_DESCRIPTOR  *MemoryTypeInformationResourceHob;
-  UINTN                        Count;
   EFI_PHYSICAL_ADDRESS         BaseAddress;
   UINT64                       Length;
   UINT64                       Attributes;
@@ -2299,10 +2271,14 @@ CoreInitializeMemoryServices (
   EFI_PHYSICAL_ADDRESS         TestedMemoryBaseAddress;
   UINT64                       TestedMemoryLength;
   EFI_PHYSICAL_ADDRESS         HighAddress;
-  EFI_HOB_GUID_TYPE            *GuidHob;
   UINT32                       ReservedCodePageNumber;
   UINT64                       MinimalMemorySizeNeeded;
+<<<<<<< HEAD
   EFI_PHYSICAL_ADDRESS         ResourceHobMemoryTop;  // MU_CHANGE
+=======
+  EFI_PHYSICAL_ADDRESS         ResourceHobMemoryTop;
+  EFI_STATUS                   Status;
+>>>>>>> 76abbcf4c3 (MdeModulePkg: DxeCore: Use BaseMemoryBinLib)
 
   //
   // Point at the first HOB.  This must be the PHIT HOB.
@@ -2341,6 +2317,7 @@ CoreInitializeMemoryServices (
                                                                   + EFI_PAGES_TO_SIZE (ReservedCodePageNumber);
   }
 
+<<<<<<< HEAD
   //
   // See if a Memory Type Information HOB is available
   //
@@ -2386,12 +2363,21 @@ CoreInitializeMemoryServices (
         MemoryTypeInformationResourceHob = NULL;
       }
     }
+=======
+  Status = PopulateMemoryTypeInformation ();
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_WARN, "No Memory Type Information HOB found, S4 resume will likely fail\n"));
+>>>>>>> 76abbcf4c3 (MdeModulePkg: DxeCore: Use BaseMemoryBinLib)
   }
+
+  MemoryTypeInformationResourceHob = GetMemoryTypeInformationResourceHob (
+                                       HobStart
+                                       );
 
   //
   // Include the total memory bin size needed to make sure memory bin could be allocated successfully.
   //
-  MinimalMemorySizeNeeded = MINIMUM_INITIAL_MEMORY_SIZE + CalculateTotalMemoryBinSizeNeeded ();
+  MinimalMemorySizeNeeded = MINIMUM_INITIAL_MEMORY_SIZE + CalculateTotalMemoryBinSizeNeeded (0);
 
   //
   // Find the Resource Descriptor HOB that contains PHIT range EfiFreeMemoryBottom..EfiFreeMemoryTop
@@ -2600,7 +2586,7 @@ CoreInitializeMemoryServices (
     Capabilities = CoreConvertResourceDescriptorHobAttributesToCapabilities (EfiGcdMemoryTypeSystemMemory, Attributes);
   }
 
-  if (MemoryTypeInformationResourceHob != NULL) {
+  if ((Status == EFI_SUCCESS) && (MemoryTypeInformationResourceHob != NULL)) {
     //
     // If a Memory Type Information Resource HOB was found, then use the address
     // range of the  Memory Type Information Resource HOB as the preferred

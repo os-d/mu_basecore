@@ -75,6 +75,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiDecompressLib.h>
 #include <Library/ExtractGuidedSectionLib.h>
 #include <Library/CacheMaintenanceLib.h>
+#include <Library/BaseMemoryBinLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/PeCoffLib.h>
 #include <Library/PeCoffGetEntryPointLib.h>
@@ -262,8 +263,6 @@ extern volatile EFI_TPL  gEfiCurrentTpl;                                // MU_CH
 extern EFI_GUID                   *gDxeCoreFileName;
 extern EFI_LOADED_IMAGE_PROTOCOL  *gDxeCoreLoadedImage;
 
-extern EFI_MEMORY_TYPE_INFORMATION  gMemoryTypeInformation[EfiMaxMemoryType + 1];
-
 extern BOOLEAN                    gDispatcherRunning;
 extern EFI_RUNTIME_ARCH_PROTOCOL  gRuntimeTemplate;
 
@@ -282,12 +281,6 @@ extern BOOLEAN                                     gLoadFixedAddressCodeMemoryRe
 VOID
 CoreInitializePool (
   VOID
-  );
-
-VOID
-CoreSetMemoryTypeInformationRange (
-  IN EFI_PHYSICAL_ADDRESS  Start,
-  IN UINT64                Length
   );
 
 /**
