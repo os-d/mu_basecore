@@ -62,6 +62,7 @@
   PeiCoreEntryPoint
   DebugLib
   MemoryAllocationLib
+  MemoryBinLib
   CacheMaintenanceLib
   PeCoffLib
   PeiServicesTablePointerLib
@@ -83,6 +84,7 @@
   gEdkiiMigrationInfoGuid                       ## SOMETIMES_CONSUMES     ## HOB
   gEfiDelayedDispatchTableGuid                  ## SOMETIMES_PRODUCES     ## HOB
   gEfiFirmwarePerformanceGuid                   # MU_CHANGE_161871 - needed to build SEC perf HOB
+  gEfiMemoryTypeInformationGuid                 ## SOMETIMES_CONSUMES     ## HOB
 
 [Ppis]
   gEfiPeiStatusCodePpiGuid                      ## SOMETIMES_CONSUMES # PeiReportStatusService is not ready if this PPI doesn't exist
@@ -109,6 +111,7 @@
   gEfiPeiDelayedDispatchPpiGuid                 ## PRODUCES
   gEfiEndOfPeiSignalPpiGuid                     ## CONSUMES
   gPeiSecPerformancePpiGuid                     # MU_CHANGE_161871 - needed to build SEC perf HOB
+  gInstallPeiMemoryBinsPpiGuid                  ## SOMETIMES_CONSUMES
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdPeiCoreMaxPeiStackSize                  ## CONSUMES
