@@ -43,20 +43,6 @@ LIST_ENTRY  mFreeMemoryMapEntryList = INITIALIZE_LIST_HEAD_VARIABLE (mFreeMemory
 //
 GLOBAL_REMOVE_IF_UNREFERENCED   BOOLEAN  gLoadFixedAddressCodeMemoryReady = FALSE;
 
-// MU_CHANGE START: Add function prototype to be used in CoreAddRange
-
-/**
-  Internal function.  Moves any memory descriptors that are on the
-  temporary descriptor stack to heap.
-
-**/
-VOID
-CoreFreeMemoryMapStack (
-  VOID
-  );
-
-// MU_CHANGE END
-
 /**
   Enter critical section by gaining lock on gMemoryLock.
 
@@ -103,102 +89,6 @@ RemoveMemoryMapEntry (
   }
 }
 
-// MU_CHANGE START: Add function to get the bucket memory type for a given memory region
-
-/**
-  Helper function to evaluate if memory regions intersect.
-
-  @param  Start1     The address of the first byte in the first memory region.
-  @param  End1       The address of the last byte in the first memory region.
-  @param  Start2     The address of the first byte in the second memory region.
-  @param  End2       The address of the last byte in the second memory region.
-
-  @return TRUE if the memory regions intersect, FALSE otherwise.
-**/
-STATIC
-BOOLEAN
-MemoryRegionsIntersect (
-  IN EFI_PHYSICAL_ADDRESS  Start1,
-  IN EFI_PHYSICAL_ADDRESS  End1,
-  IN EFI_PHYSICAL_ADDRESS  Start2,
-  IN EFI_PHYSICAL_ADDRESS  End2
-  )
-{
-  return (((Start1 <= End2) && (Start2 <= Start1)) ||
-          ((Start2 <= End1) && (Start1 <= Start2)));
-}
-
-/**
-  Get the memory type for a given bucket.
-
-  @param  PhysicalStart  The starting address of the memory region.
-  @param  PhysicalEnd    The ending address of the memory region.
-
-  @return The memory type for the bucket that contains the given physical address range.
-          If the address range does not match any special bucket, it returns EfiMaxMemoryType.
-**/
-EFI_MEMORY_TYPE
-GetBucketMemoryType (
-  IN EFI_PHYSICAL_ADDRESS  PhysicalStart,
-  IN EFI_PHYSICAL_ADDRESS  PhysicalEnd
-  )
-{
-  EFI_MEMORY_TYPE  BucketType;
-
-  // Find the bucket type for the incoming memory region.
-  for (BucketType = (EFI_MEMORY_TYPE)0; BucketType < EfiMaxMemoryType; BucketType++) {
-    //
-    // If the number of pages for this memory type is not zero, the input region
-    // better be within the same bucket. We only care about the special memory type
-    // here because we need these buckets to remain consistent so that the OS resume
-    // logic can work properly. The same applies to the memory allocation logic.
-    //
-    if (mMemoryTypeStatistics[BucketType].Special && (mMemoryTypeStatistics[BucketType].NumberOfPages != 0)) {
-      if ((PhysicalStart >= mMemoryTypeStatistics[BucketType].BaseAddress) &&
-          (PhysicalEnd <= mMemoryTypeStatistics[BucketType].MaximumAddress))
-      {
-        break;
-      } else if (MemoryRegionsIntersect (
-                   PhysicalStart,
-                   PhysicalEnd,
-                   mMemoryTypeStatistics[BucketType].BaseAddress,
-                   mMemoryTypeStatistics[BucketType].MaximumAddress
-                   ))
-      {
-        // The start and end overlap the bucket, but not fully inclusive. We should not allow this.
-        DEBUG ((
-          DEBUG_ERROR,
-          "%a: %lx-%lx intersects bucket type %d (%lx-%lx)\n",
-          __func__,
-          PhysicalStart,
-          PhysicalEnd,
-          BucketType,
-          mMemoryTypeStatistics[BucketType].BaseAddress,
-          mMemoryTypeStatistics[BucketType].MaximumAddress
-          ));
-
-        ASSERT (FALSE);
-      }
-    }
-  }
-
-  // If we can find the bucket type, use it to guide the merging logic below.
-  // Otherwise, we will not care about the bucket type.
-  if (BucketType >= EfiMaxMemoryType) {
-    DEBUG ((
-      DEBUG_PAGE,
-      "%a: defaulting to max for %lx -%lx\n",
-      __func__,
-      PhysicalStart,
-      PhysicalEnd
-      ));
-  }
-
-  return BucketType;
-}
-
-// MU_CHANGE ENDS
-
 /**
   Internal function.  Adds a ranges to the memory map.
   The range must not already exist in the map.
@@ -222,78 +112,10 @@ CoreAddRange (
   LIST_ENTRY  *Link;
   MEMORY_MAP  *Entry;
 
-  // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-  EFI_MEMORY_TYPE  BucketType;
-  EFI_MEMORY_TYPE  MergeType;
-  BOOLEAN          Break;
-
-  // MU_CHANGE ENDs
-
   ASSERT ((Start & EFI_PAGE_MASK) == 0);
   ASSERT (End > Start);
 
   ASSERT_LOCKED (&gMemoryLock);
-
-  // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-  // Find the bucket type for the incoming memory region.
-  Break = FALSE;
-  for (BucketType = (EFI_MEMORY_TYPE)0; BucketType < EfiMaxMemoryType; BucketType++) {
-    //
-    // If the number of pages for this memory type is not zero, the input region better
-    // be within the same bucket. Otherwise, we will handle the ones we care about,
-    // the special memory types, in chunks.
-    //
-    if (mMemoryTypeStatistics[BucketType].Special && (mMemoryTypeStatistics[BucketType].NumberOfPages != 0)) {
-      if ((Start <= mMemoryTypeStatistics[BucketType].MaximumAddress) &&
-          (End > mMemoryTypeStatistics[BucketType].MaximumAddress))
-      {
-        //
-        // The start overlaps the bucket, so we let self-recursion handle the tail, and we
-        // handle the head.
-        //
-        // |----------|---Special Memory Bucket---|----------|
-        // |--------------^---------------------------^------|
-        // |------------Start------------------------End-----|
-        //
-        CoreAddRange (
-          Type,
-          mMemoryTypeStatistics[BucketType].MaximumAddress + 1,
-          End,
-          Attribute
-          );
-        CoreFreeMemoryMapStack ();
-        End   = mMemoryTypeStatistics[BucketType].MaximumAddress;
-        Break = TRUE;
-      }
-
-      if ((Start < mMemoryTypeStatistics[BucketType].BaseAddress) &&
-          (End >= mMemoryTypeStatistics[BucketType].BaseAddress))
-      {
-        // The end overlaps the bucket, so we let self-recursion handle the head, and we
-        // handle the tail.
-        //
-        // |----------|---Special Memory Bucket---|----------|
-        // |------^-------------------^----------------------|
-        // |----Start----------------End---------------------|
-        //
-        CoreAddRange (
-          Type,
-          Start,
-          mMemoryTypeStatistics[BucketType].BaseAddress - 1,
-          Attribute
-          );
-        CoreFreeMemoryMapStack ();
-        Start = mMemoryTypeStatistics[BucketType].BaseAddress;
-        Break = TRUE;
-      }
-
-      if (Break) {
-        break;
-      }
-    }
-  }
-
-  // MU_CHANGE ENDS
 
   DEBUG ((DEBUG_PAGE, "AddRange: %lx-%lx to %d\n", Start, End, Type));
 
@@ -339,8 +161,7 @@ CoreAddRange (
   // and the same Attribute
   //
 
-  MergeType = GetBucketMemoryType (Start, End); // MU_CHANGE: Add check to merge memory regions of the bucket type
-  Link      = gMemoryMap.ForwardLink;
+  Link = gMemoryMap.ForwardLink;
   while (Link != &gMemoryMap) {
     Entry = CR (Link, MEMORY_MAP, Link, MEMORY_MAP_SIGNATURE);
     Link  = Link->ForwardLink;
@@ -352,17 +173,6 @@ CoreAddRange (
     if (Entry->Attribute != Attribute) {
       continue;
     }
-
-    // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-    if (MergeType != EfiMaxMemoryType) {
-      // We are in the midst of merging memory descriptors, so we can only merge
-      // with the same type as the merge type.
-      if (MergeType != GetBucketMemoryType (Entry->Start, Entry->End)) {
-        continue;
-      }
-    }
-
-    // MU_CHANGE ENDS
 
     if (Entry->End + 1 == Start) {
       Start = Entry->Start;
@@ -946,7 +756,7 @@ CoreConvertPagesEx (
     // freeing to be allocated before we're done freeing it if CoreFreeMemoryMapStack()
     // is called after AddRange(). So, if we are freeing, let's free the memory map
     // stack before adding memory we're converting to the free list.
-    if (ChangingType && (NewType == EfiConventionalMemory)) {
+    if ((ChangingTypeFlags & CHANGING_TYPE_TRUE_FLAG) && (NewType == EfiConventionalMemory)) {
       //
       // Move any map descriptor stack to general pool
       //
@@ -987,7 +797,7 @@ CoreConvertPagesEx (
     // converting to also be allocated in the below call. To avoid this case, we should
     // call CoreFreeMemoryMapStack() after we've called AddRange() to mark this memory
     // as allocated.
-    if (!ChangingType || (ChangingType && (NewType != EfiConventionalMemory))) {
+    if (!(ChangingTypeFlags & CHANGING_TYPE_TRUE_FLAG) || ((ChangingTypeFlags & CHANGING_TYPE_TRUE_FLAG) && (NewType != EfiConventionalMemory))) {
       //
       // Move any map descriptor stack to general pool
       //
