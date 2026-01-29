@@ -113,6 +113,18 @@
       NvmExpressDxe|MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
   }
 
+  MdeModulePkg/Library/DxeReportStatusCodeLib/GoogleTest/DxeReportStatusCodeLibGoogleTest.inf {
+    <LibraryClasses>
+      ReportStatusCodeLib|MdeModulePkg/Library/DxeReportStatusCodeLib/DxeReportStatusCodeLib.inf
+      DevicePathLib|MdePkg/Test/Mock/Library/GoogleTest/MockDevicePathLib/MockDevicePathLib.inf
+      UefiBootServicesTableLib|MdePkg/Test/Mock/Library/GoogleTest/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.inf
+  }
+
+  MdeModulePkg/Library/BaseMemoryBinLib/GoogleTest/BaseMemoryBinLibGoogleTestHost.inf {
+    <LibraryClasses>
+      HobLib|MdePkg/Test/Mock/Library/GoogleTest/MockHobLib/MockHobLib.inf
+  }
+
   #
   # Build HOST_APPLICATION Libraries
   #
