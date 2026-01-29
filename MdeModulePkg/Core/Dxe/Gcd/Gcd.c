@@ -2273,12 +2273,8 @@ CoreInitializeMemoryServices (
   EFI_PHYSICAL_ADDRESS         HighAddress;
   UINT32                       ReservedCodePageNumber;
   UINT64                       MinimalMemorySizeNeeded;
-<<<<<<< HEAD
-  EFI_PHYSICAL_ADDRESS         ResourceHobMemoryTop;  // MU_CHANGE
-=======
   EFI_PHYSICAL_ADDRESS         ResourceHobMemoryTop;
   EFI_STATUS                   Status;
->>>>>>> 76abbcf4c3 (MdeModulePkg: DxeCore: Use BaseMemoryBinLib)
 
   //
   // Point at the first HOB.  This must be the PHIT HOB.
@@ -2317,57 +2313,9 @@ CoreInitializeMemoryServices (
                                                                   + EFI_PAGES_TO_SIZE (ReservedCodePageNumber);
   }
 
-<<<<<<< HEAD
-  //
-  // See if a Memory Type Information HOB is available
-  //
-  MemoryTypeInformationResourceHob = NULL;
-  GuidHob                          = GetFirstGuidHob (&gEfiMemoryTypeInformationGuid);
-  if (GuidHob != NULL) {
-    EfiMemoryTypeInformation = GET_GUID_HOB_DATA (GuidHob);
-    DataSize                 = GET_GUID_HOB_DATA_SIZE (GuidHob);
-    if ((EfiMemoryTypeInformation != NULL) && (DataSize > 0) && (DataSize <= (EfiMaxMemoryType + 1) * sizeof (EFI_MEMORY_TYPE_INFORMATION))) {
-      CopyMem (&gMemoryTypeInformation, EfiMemoryTypeInformation, DataSize);
-
-      //
-      // Look for Resource Descriptor HOB with a ResourceType of System Memory
-      // and an Owner GUID of gEfiMemoryTypeInformationGuid. If more than 1 is
-      // found, then set MemoryTypeInformationResourceHob to NULL.
-      //
-      Count = 0;
-      for (Hob.Raw = *HobStart; !END_OF_HOB_LIST (Hob); Hob.Raw = GET_NEXT_HOB (Hob)) {
-        if ((GET_HOB_TYPE (Hob) != EFI_HOB_TYPE_RESOURCE_DESCRIPTOR) && (GET_HOB_TYPE (Hob) != EFI_HOB_TYPE_RESOURCE_DESCRIPTOR2)) {
-          continue;
-        }
-
-        ResourceHob = Hob.ResourceDescriptor;
-        if (!CompareGuid (&ResourceHob->Owner, &gEfiMemoryTypeInformationGuid)) {
-          continue;
-        }
-
-        Count++;
-        if (ResourceHob->ResourceType != EFI_RESOURCE_SYSTEM_MEMORY) {
-          continue;
-        }
-
-        if ((ResourceHob->ResourceAttribute & MEMORY_ATTRIBUTE_MASK) != TESTED_MEMORY_ATTRIBUTES) {
-          continue;
-        }
-
-        if (ResourceHob->ResourceLength >= CalculateTotalMemoryBinSizeNeeded ()) {
-          MemoryTypeInformationResourceHob = ResourceHob;
-        }
-      }
-
-      if (Count > 1) {
-        MemoryTypeInformationResourceHob = NULL;
-      }
-    }
-=======
   Status = PopulateMemoryTypeInformation ();
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_WARN, "No Memory Type Information HOB found, S4 resume will likely fail\n"));
->>>>>>> 76abbcf4c3 (MdeModulePkg: DxeCore: Use BaseMemoryBinLib)
   }
 
   MemoryTypeInformationResourceHob = GetMemoryTypeInformationResourceHob (

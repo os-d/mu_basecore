@@ -354,9 +354,12 @@ CoreAddRange (
     }
 
     // MU_CHANGE STARTS: Add check to merge memory regions of the bucket type
-    // We need to make sure we can only merge with the same type as the merge type
-    if (MergeType != GetBucketMemoryType (Entry->Start, Entry->End)) {
-      continue;
+    if (MergeType != EfiMaxMemoryType) {
+      // We are in the midst of merging memory descriptors, so we can only merge
+      // with the same type as the merge type.
+      if (MergeType != GetBucketMemoryType (Entry->Start, Entry->End)) {
+        continue;
+      }
     }
 
     // MU_CHANGE ENDS

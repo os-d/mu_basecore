@@ -212,7 +212,7 @@ BmSetMemoryTypeInformationVariable (
   MEMORY_BINS_RANGE                  BinRange;
   EFI_PHYSICAL_ADDRESS               BinEnd;
   VOID * Memory;
-  UINTN Minimum;
+  UINT32 Minimum;
 
   MemoryTypeInformationModified       = FALSE;
   MemoryTypeInformationVariableExists = FALSE;
