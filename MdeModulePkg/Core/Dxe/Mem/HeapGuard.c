@@ -1148,9 +1148,10 @@ AdjustPoolHeadF (
 /**
   Allocate or free guarded memory.
 
-  @param[in]  Start           Start address of memory to allocate or free.
-  @param[in]  NumberOfPages   Memory size in pages.
-  @param[in]  NewType         Memory type to convert to.
+  @param[in]  Start            Start address of memory to allocate or free.
+  @param[in]  NumberOfPages    Memory size in pages.
+  @param[in]  NewType          Memory type to convert to.
+  @param[in]  UpdateStatistics Boolean flag to indicate whether to update memory statistics.
 
   @return VOID.
 **/
@@ -1158,7 +1159,8 @@ EFI_STATUS
 CoreConvertPagesWithGuard (
   IN UINT64           Start,
   IN UINTN            NumberOfPages,
-  IN EFI_MEMORY_TYPE  NewType
+  IN EFI_MEMORY_TYPE  NewType,
+  IN BOOLEAN          UpdateStatistics
   )
 {
   UINT64  OldStart;
@@ -1184,7 +1186,7 @@ CoreConvertPagesWithGuard (
     AdjustMemoryA (&Start, &NumberOfPages);
   }
 
-  return CoreConvertPages (Start, NumberOfPages, NewType);
+  return CoreConvertPages (Start, NumberOfPages, NewType, UpdateStatistics);
 }
 
 /**

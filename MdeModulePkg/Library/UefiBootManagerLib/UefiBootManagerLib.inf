@@ -94,6 +94,7 @@
   gEfiEventPreReadyToBootGuid                   ## PRODUCES   ##MSCHANGE
   gEfiEventPostReadyToBootGuid                  ## PRODUCES   ##MSCHANGE
   gEfiEventReadyToBootGuid                      # MU_CHANGE
+  gMemoryTypeInformationStatisticsGuid          ## CONSUMES ## GUID
 
 [Protocols]
   gEfiPciRootBridgeIoProtocolGuid               ## CONSUMES

@@ -133,6 +133,7 @@
   gDxeMemoryProtectionSettingsGuid              ## CONSUMES             ## HOB      // MU_CHANGE
   gMemoryProtectionSpecialRegionHobGuid         ## CONSUMES             ## HOB      // MU_CHANGE
   gCompatibilityModeActivatedEventGuid          ## SOMETIMES_PRODUCES   ## Event    // MU_CHANGE
+  gMemoryTypeInformationStatisticsGuid          ## PRODUCES
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB
