@@ -18,6 +18,8 @@ from edk2toollib.utility_functions import GetHostInfo
 
 from edk2toolext import codeql as codeql_helpers
 
+
+
 class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManager, PrEvalSettingsManager, ParseSettingsManager):
 
     def __init__(self):
