@@ -13,7 +13,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 // This device structure is serviced as a header.
 // Its next field points to the first root bridge device node.
 //
-LIST_ENTRY  mPciDevicePool;
+LIST_ENTRY    mPciDevicePool;
+STATIC UINTN  mPciStorageDeviceRegistrationOrder;
 
 // MU_CHANGE Begin - Disable BME at Exit Boot Services
 
@@ -105,6 +106,7 @@ InitializePciDevicePool (
   EFI_STATUS  Status;                   // MU_CHANGE
 
   InitializeListHead (&mPciDevicePool);
+  mPciStorageDeviceRegistrationOrder = 0;
 
   // MU_CHANGE [Begin] - Disable BME on EBS
   Status = gBS->CreateEventEx (
@@ -480,6 +482,31 @@ RegisterPciDevice (
   // Indicate the pci device is registered
   //
   PciIoDevice->Registered = TRUE;
+
+  if (PciIoDevice->Pci.Hdr.ClassCode[2] == PCI_CLASS_MASS_STORAGE) {
+    CHAR16  *DevicePathText;
+
+    DevicePathText = ConvertDevicePathToText (PciIoDevice->DevicePath, FALSE, FALSE);
+    mPciStorageDeviceRegistrationOrder++;
+    DEBUG ((
+      DEBUG_INFO,
+      "PciBus: Drive enumeration order %u: %04x:%02x:%02x.%x class=%02x:%02x:%02x VID=%04x DID=%04x path=%s\n",
+      mPciStorageDeviceRegistrationOrder,
+      PciIoDevice->PciRootBridgeIo->SegmentNumber,
+      PciIoDevice->BusNumber,
+      PciIoDevice->DeviceNumber,
+      PciIoDevice->FunctionNumber,
+      PciIoDevice->Pci.Hdr.ClassCode[2],
+      PciIoDevice->Pci.Hdr.ClassCode[1],
+      PciIoDevice->Pci.Hdr.ClassCode[0],
+      PciIoDevice->Pci.Hdr.VendorId,
+      PciIoDevice->Pci.Hdr.DeviceId,
+      DevicePathText != NULL ? DevicePathText : L"<unavailable>"
+      ));
+    if (DevicePathText != NULL) {
+      FreePool (DevicePathText);
+    }
+  }
 
   return EFI_SUCCESS;
 }
